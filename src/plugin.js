@@ -88,7 +88,8 @@ export default class TableBlock {
    */
   static get CSS() {
     return {
-      settingsWrapper: 'tc-settings'
+      settingsWrapper: 'tc-settings',
+      extraSettingsWrapper: 'tc-settings-extra',
     };
   }
 
@@ -187,6 +188,23 @@ export default class TableBlock {
 
       wrapper.append(tuneButton);
     });
+
+    if (this.config.settings && this.config.settings.length > 0) {
+      const extraSettingsWrapper = $.make('div', TableBlock.CSS.extraSettingsWrapper);
+      this.config.settings.forEach(tune => {
+        let tuneButton = $.make('div', this.api.styles.settingsButton);
+        tuneButton.innerHTML = tune.icon;
+        tuneButton.addEventListener('click', () => tune.onClick({data: this.data}));
+        this.api.tooltip.onHover(tuneButton, tune.title, {
+          placement: 'top',
+          hidingDelay: 500
+        });
+  
+        extraSettingsWrapper.append(tuneButton);
+      });
+
+      wrapper.appendChild(extraSettingsWrapper);
+    }
 
     return wrapper;
   }

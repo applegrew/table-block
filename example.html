@@ -27,6 +27,10 @@
       width: 900px;
       min-height: 100px;
     }
+
+    .tc-settings-extra .cdx-settings-button {
+      width: 100% !important;
+    }
   </style>
 
 </head>
@@ -36,6 +40,8 @@
   <div class="block"></div>
   <div id="editorjs"></div>
 
+  <label>Read-Only: <input type="checkbox" name="readonly" id="readonly" /></label>
+  <br/>
   <button class="save-button">Save</button>
   <pre class="output"></pre>
 
@@ -50,6 +56,18 @@
         table: {
           class: Table,
           inlineToolbar: true,
+          config: {
+            settings: [
+              {
+                title: 'Code Name',
+                name: 'codeName',
+                icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><path fill="none" d="M0 0h24v24H0z"/><path d="M20 9V5H4v4h16zm0 2H4v8h16v-8zM3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 9h3v5H5v-5zm0-6h2v2H5V6zm4 0h2v2H9V6z"/></svg>',
+                onClick({data}) {
+                  alert(JSON.stringify(data));
+                }
+              }
+            ]
+          }
         }
       },
       data: {
@@ -78,6 +96,10 @@
       editor.save().then(savedData => {
         output.innerHTML = JSON.stringify(savedData, null, 4);
       });
+    });
+
+    readonly.addEventListener('change', () => {
+      editor.readOnly.toggle(readonly.checked);
     });
   </script>
 </body>
