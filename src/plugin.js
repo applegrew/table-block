@@ -2,6 +2,8 @@ import Table from './table';
 import tableIcon from './img/tableIcon.svg';
 import withHeadings from './img/with-headings.svg';
 import withoutHeadings from './img/without-headings.svg';
+import editable from './img/editable.svg';
+import readonly from './img/readonly.svg';
 import * as $ from './utils/dom';
 
 /**
@@ -58,6 +60,7 @@ export default class TableBlock {
     this.readOnly = readOnly;
     this.data = {
       withHeadings: data && data.withHeadings ? data.withHeadings : false,
+      readOnly: data && data.readOnly ? data.readOnly : false,
       content: data && data.content ? data.content : []
     };
     this.config = config;
@@ -89,22 +92,71 @@ export default class TableBlock {
     };
   }
 
+  renderTable() {
+    if (!this.container)
+      return;
+
+    this.container.innerHTML = '';
+
+    /** creating table */
+    this.table = new Table(this.data.readOnly, this.api, this.data, this.config);
+    this.container.appendChild(this.table.getWrapper());
+    this.table.setHeadingsSetting(this.data.withHeadings);
+  }
+
   /**
    * Return Tool's view
    *
    * @returns {HTMLDivElement}
    */
   render() {
-    /** creating table */
-    this.table = new Table(this.readOnly, this.api, this.data, this.config);
-
     /** creating container around table */
     this.container = $.make('div', this.api.styles.block);
-    this.container.appendChild(this.table.getWrapper());
-
-    this.table.setHeadingsSetting(this.data.withHeadings);
-
+    
+    this.renderTable();
     return this.container;
+  }
+
+  getTunes() {
+    return [ {
+        title: this.api.i18n.t('With headings'),
+        name: 'with-headings',
+        icon: withHeadings,
+        group: 'headings',
+        isActive: this.data.withHeadings,
+        setTune: () => {
+          this.data.withHeadings = true;
+        }
+      }, {
+        title: this.api.i18n.t('Without headings'),
+        name: 'wo-headings',
+        icon: withoutHeadings,
+        group: 'headings',
+        isActive: !this.data.withHeadings,
+        setTune: () => {
+          this.data.withHeadings = false;
+        }
+      }, {
+        title: this.api.i18n.t('Editable'),
+        name: 'editable',
+        icon: editable,
+        group: 'editing',
+        isActive: !this.data.readOnly,
+        setTune: () => {
+          this.data.readOnly = this.readOnly || false;
+        }
+      },
+      {
+        title: this.api.i18n.t('Readonly'),
+        name: 'readonly',
+        icon: readonly,
+        group: 'editing',
+        isActive: this.data.readOnly,
+        setTune: () => {
+          this.data.readOnly = this.readOnly || true;
+        }
+      }
+    ];
   }
 
   /**
@@ -115,33 +167,20 @@ export default class TableBlock {
   renderSettings() {
     const wrapper = $.make('div', TableBlock.CSS.settingsWrapper);
 
-    const tunes = [ {
-      name: this.api.i18n.t('With headings'),
-      icon: withHeadings,
-      isActive: this.data.withHeadings,
-      setTune: () => {
-        this.data.withHeadings = true;
-      }
-    }, {
-      name: this.api.i18n.t('Without headings'),
-      icon: withoutHeadings,
-      isActive: !this.data.withHeadings,
-      setTune: () => {
-        this.data.withHeadings = false;
-      }
-    } ];
+    const tunes = this.getTunes();
 
     tunes.forEach((tune) => {
       let tuneButton = $.make('div', this.api.styles.settingsButton);
+      tuneButton.setAttribute('x-tune-name', tune.name);
 
       if (tune.isActive) {
         tuneButton.classList.add(this.api.styles.settingsButtonActive);
       }
 
       tuneButton.innerHTML = tune.icon;
-      tuneButton.addEventListener('click', () => this.toggleTune(tune, tuneButton));
+      tuneButton.addEventListener('click', () => this.toggleTune(tune, wrapper));
 
-      this.api.tooltip.onHover(tuneButton, tune.name, {
+      this.api.tooltip.onHover(tuneButton, tune.title, {
         placement: 'top',
         hidingDelay: 500
       });
@@ -162,6 +201,7 @@ export default class TableBlock {
 
     let result = {
       withHeadings: this.data.withHeadings,
+      readOnly: this.data.readOnly,
       content: tableContent
     };
 
@@ -176,19 +216,25 @@ export default class TableBlock {
    * @param {HTMLElement} tuneButton - DOM element of the tune
    * @returns {void}
    */
-  toggleTune(tune, tuneButton) {
-    const buttons = tuneButton.parentNode.querySelectorAll('.' + this.api.styles.settingsButton);
-
-    // Clear other buttons
-    Array.from(buttons).forEach((button) =>
-      button.classList.remove(this.api.styles.settingsButtonActive)
-    );
-
-    // Mark active button
-    tuneButton.classList.toggle(this.api.styles.settingsButtonActive);
+  toggleTune(tune, wrapper) {
+    // Execute button code
     tune.setTune();
 
-    this.table.setHeadingsSetting(this.data.withHeadings);
+    const tunes = this.getTunes();
+    tunes.forEach(tune => {
+      const tuneButton = wrapper.querySelector('[x-tune-name="' + tune.name + '"]');
+      if (tune.isActive) {
+        tuneButton.classList.add(this.api.styles.settingsButtonActive);
+      } else {
+        tuneButton.classList.remove(this.api.styles.settingsButtonActive);
+      }
+    });
+
+    if (tune.group === "editing") {
+      this.data.content = this.table.getData();
+      this.renderTable();
+    } else if (tune.group === "headings")
+      this.table.setHeadingsSetting(this.data.withHeadings);
   }
 
   /**
